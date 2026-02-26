@@ -715,26 +715,23 @@ class InputHandler {
     });
   }
 
-  _bindFilters() {
-    const buttons = document.querySelectorAll('.filter-group button');
+  _bindButtonGroup(selector, eventName, datasetKey) {
+    const buttons = document.querySelectorAll(selector);
     buttons.forEach(btn => {
       btn.addEventListener('click', () => {
         buttons.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        this._eventBus.emit('filter:change', btn.dataset.filter);
+        this._eventBus.emit(eventName, btn.dataset[datasetKey]);
       });
     });
   }
 
+  _bindFilters() {
+    this._bindButtonGroup('.filter-group button', 'filter:change', 'filter');
+  }
+
   _bindSortButtons() {
-    const buttons = document.querySelectorAll('.sort-group button');
-    buttons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        buttons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        this._eventBus.emit('sort:change', btn.dataset.sort);
-      });
-    });
+    this._bindButtonGroup('.sort-group button', 'sort:change', 'sort');
   }
 
   _bindSearch() {
