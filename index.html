@@ -4,236 +4,67 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Todo App</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f0f2f5;
-      color: #1a1a2e;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      padding: 3rem 1rem;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 520px;
-    }
-
-    h1 {
-      font-size: 2rem;
-      font-weight: 700;
-      margin-bottom: 1.5rem;
-      text-align: center;
-    }
-
-    .input-row {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .input-row input {
-      flex: 1;
-      padding: 0.75rem 1rem;
-      border: 2px solid #d1d5db;
-      border-radius: 10px;
-      font-size: 1rem;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .input-row input:focus {
-      border-color: #6366f1;
-    }
-
-    .input-row button {
-      padding: 0.75rem 1.25rem;
-      background: #6366f1;
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .input-row button:hover { background: #4f46e5; }
-
-    .filters {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-      justify-content: center;
-    }
-
-    .filters button {
-      padding: 0.4rem 1rem;
-      border: none;
-      border-radius: 8px;
-      background: #e5e7eb;
-      font-size: 0.875rem;
-      cursor: pointer;
-      transition: background 0.2s, color 0.2s;
-    }
-
-    .filters button.active {
-      background: #6366f1;
-      color: #fff;
-    }
-
-    ul {
-      list-style: none;
-    }
-
-    li {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      background: #fff;
-      padding: 0.85rem 1rem;
-      border-radius: 10px;
-      margin-bottom: 0.5rem;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-      transition: opacity 0.2s;
-    }
-
-    li.done span {
-      text-decoration: line-through;
-      opacity: 0.5;
-    }
-
-    li input[type="checkbox"] {
-      width: 20px;
-      height: 20px;
-      accent-color: #6366f1;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-
-    li span {
-      flex: 1;
-      font-size: 1rem;
-      word-break: break-word;
-    }
-
-    li .delete-btn {
-      background: none;
-      border: none;
-      color: #9ca3af;
-      font-size: 1.2rem;
-      cursor: pointer;
-      padding: 0 0.25rem;
-      transition: color 0.2s;
-    }
-
-    li .delete-btn:hover { color: #ef4444; }
-
-    .empty {
-      text-align: center;
-      color: #9ca3af;
-      padding: 2rem 0;
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="container">
     <h1>Todo</h1>
+    <div class="stats-bar" id="statsBar"></div>
 
     <div class="input-row">
-      <input id="todoInput" type="text" placeholder="What needs to be done?" autofocus>
+      <input class="todo-text-input" id="todoInput" type="text" placeholder="What needs to be done?" autofocus>
+      <select id="priorityInput">
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+        <option value="low">Low</option>
+      </select>
       <button id="addBtn">Add</button>
     </div>
 
-    <div class="filters">
-      <button class="active" data-filter="all">All</button>
-      <button data-filter="active">Active</button>
-      <button data-filter="completed">Completed</button>
+    <div class="search-row">
+      <input id="searchInput" type="text" placeholder="Search todos...">
+    </div>
+
+    <div class="toolbar">
+      <div class="filter-group">
+        <label>Filter:</label>
+        <button class="active" data-filter="all">All</button>
+        <button data-filter="active">Active</button>
+        <button data-filter="completed">Done</button>
+      </div>
+      <div class="sort-group">
+        <label>Sort:</label>
+        <button class="active" data-sort="newest">Newest</button>
+        <button data-sort="oldest">Oldest</button>
+        <button data-sort="priority">Priority</button>
+      </div>
+      <span class="spacer"></span>
+      <div class="bulk-actions">
+        <button id="clearCompletedBtn">Clear Done</button>
+      </div>
     </div>
 
     <ul id="todoList"></ul>
   </div>
 
-  <script>
-    const input = document.getElementById('todoInput');
-    const addBtn = document.getElementById('addBtn');
-    const list = document.getElementById('todoList');
-    const filterBtns = document.querySelectorAll('.filters button');
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <h2>Edit Todo</h2>
+      <input id="editTextInput" type="text" placeholder="Todo text">
+      <select id="editPriorityInput">
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+      <div class="modal-actions">
+        <button class="cancel-btn" id="editCancelBtn">Cancel</button>
+        <button class="save-btn" id="editSaveBtn">Save</button>
+      </div>
+    </div>
+  </div>
 
-    let todos = JSON.parse(localStorage.getItem('todos') || '[]');
-    let filter = 'all';
+  <div class="notification" id="notification"></div>
 
-    function save() {
-      localStorage.setItem('todos', JSON.stringify(todos));
-    }
-
-    function render() {
-      const filtered = todos.filter(t => {
-        if (filter === 'active') return !t.done;
-        if (filter === 'completed') return t.done;
-        return true;
-      });
-
-      if (filtered.length === 0) {
-        list.innerHTML = '<li class="empty">Nothing here yet.</li>';
-        return;
-      }
-
-      list.innerHTML = filtered.map(t => `
-        <li class="${t.done ? 'done' : ''}" data-id="${t.id}">
-          <input type="checkbox" ${t.done ? 'checked' : ''}>
-          <span>${escapeHtml(t.text)}</span>
-          <button class="delete-btn" title="Delete">&times;</button>
-        </li>
-      `).join('');
-    }
-
-    function escapeHtml(str) {
-      const d = document.createElement('div');
-      d.textContent = str;
-      return d.innerHTML;
-    }
-
-    function addTodo() {
-      const text = input.value.trim();
-      if (!text) return;
-      todos.push({ id: Date.now(), text, done: false });
-      input.value = '';
-      save();
-      render();
-    }
-
-    addBtn.addEventListener('click', addTodo);
-    input.addEventListener('keydown', e => { if (e.key === 'Enter') addTodo(); });
-
-    list.addEventListener('click', e => {
-      const li = e.target.closest('li');
-      if (!li || !li.dataset.id) return;
-      const id = Number(li.dataset.id);
-
-      if (e.target.type === 'checkbox') {
-        const todo = todos.find(t => t.id === id);
-        if (todo) todo.done = !todo.done;
-      } else if (e.target.classList.contains('delete-btn')) {
-        todos = todos.filter(t => t.id !== id);
-      }
-      save();
-      render();
-    });
-
-    filterBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        filterBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        filter = btn.dataset.filter;
-        render();
-      });
-    });
-
-    render();
-  </script>
+  <script src="app.js"></script>
 </body>
 </html>
